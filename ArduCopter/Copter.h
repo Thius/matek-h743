@@ -24,7 +24,6 @@
 #include <cmath>
 #include <stdio.h>
 #include <stdarg.h>
-
 #include <AP_HAL/AP_HAL.h>
 
 // Common dependencies
