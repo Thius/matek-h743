@@ -382,8 +382,8 @@ public:
         k_param_throw_altitude_min,
         k_param_throw_altitude_max,
 
-        k_thius_flight_frame_enabled = 380,
-        k_thius_flight_frame_ch = 381,
+        k_param_thius_flight_frame_enabled = 380,
+        k_param_thius_flight_frame_ch = 381,
         
 
 
