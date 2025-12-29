@@ -739,6 +739,7 @@ private:
     // baro_ground_effect.cpp
     void update_ground_effect_detector(void);
     void update_ekf_terrain_height_stable();
+    void check_thius_flight_frame(void);
 
     // commands.cpp
     void update_home_from_EKF();

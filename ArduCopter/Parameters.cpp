@@ -410,6 +410,19 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(rc_speed, "RC_SPEED",              RC_FAST_SPEED),
 
+    // @Param: THIUS_FLIGHT_FRAME_ENABLED
+    // @DisplayName: This Flight Frame Enabled
+    // @Description: Enable this flight frame
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    GSCALAR(thius_flight_frame_enabled, "THIUS_FLIGHT_FRAME_ENABLED", 0),
+
+    // @Param: THIUS_FLIGHT_FRAME_CH
+    // @DisplayName: This Flight Frame Channel
+    // @Description: Channel for this flight frame
+    // @User: Advanced
+    GSCALAR(thius_flight_frame_ch, "THIUS_FLIGHT_FRAME_CH", 0),
+
 #if MODE_ACRO_ENABLED || MODE_SPORT_ENABLED
     // @Param: ACRO_BAL_ROLL
     // @DisplayName: Acro Balance Roll

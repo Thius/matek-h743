@@ -382,6 +382,11 @@ public:
         k_param_throw_altitude_min,
         k_param_throw_altitude_max,
 
+        k_thius_flight_frame_enabled = 380
+        k_thius_flight_frame_ch = 381
+        
+
+
         // the k_param_* space is 9-bits in size
         // 511: reserved
     };
@@ -466,6 +471,9 @@ public:
 #endif
 
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz
+
+    AP_Int8         thius_flight_frame_enabled;
+    AP_Int8         thius_flight_frame_ch;
 
 #if MODE_ACRO_ENABLED || MODE_SPORT_ENABLED
     // Acro parameters

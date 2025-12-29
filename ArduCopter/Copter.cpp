@@ -548,6 +548,72 @@ void Copter::throttle_loop()
     // compensate for ground effect (if enabled)
     update_ground_effect_detector();
     update_ekf_terrain_height_stable();
+
+    // check thius flight frame parameter and detect PWM position
+    check_thius_flight_frame();
+}
+
+// check_thius_flight_frame - check frame enabled parameter and detect PWM position
+// should be called periodically
+void Copter::check_thius_flight_frame(void)
+{
+    // Check if frame enabled parameter is set
+    if (g.thius_flight_frame_enabled.get() == 0) {
+        return;
+    }
+
+    // Get channel number (1-indexed: 1-16)
+    const uint8_t channel_num = g.thius_flight_frame_ch.get();
+    
+    // Validate channel number (must be between 1 and 16)
+    if (channel_num < 1 || channel_num > 16) {
+        return;
+    }
+
+    // Convert to 0-indexed channel index
+    const uint8_t channel_index = channel_num - 1;
+
+    // Get RC channel object
+    RC_Channel *channel = rc().channel(channel_index);
+    if (channel == nullptr) {
+        return;
+    }
+
+    // Read PWM value
+    const uint16_t pwm_value = channel->get_radio_in();
+
+    // Check if we have valid input (PWM > 0 means valid signal)
+    if (pwm_value == 0) {
+        return;
+    }
+
+    // Determine position (3 positions with equal ranges: 1000-1333, 1334-1666, 1667-2000)
+    uint8_t position = 0;
+    const char* position_str = nullptr;
+
+    if (pwm_value >= 1000 && pwm_value <= 1333) {
+        position = 1;
+        position_str = "Position 1";
+    } else if (pwm_value >= 1334 && pwm_value <= 1666) {
+        position = 2;
+        position_str = "Position 2";
+    } else if (pwm_value >= 1667 && pwm_value <= 2000) {
+        position = 3;
+        position_str = "Position 3";
+    } else {
+        // Out of range
+        return;
+    }
+
+    // Static variable to track last position to avoid spamming GCS
+    static uint8_t last_position = 0;
+    
+    // Only send message if position changed
+    if (position != last_position) {
+        last_position = position;
+        // Send message to GCS
+        gcs().send_text(MAV_SEVERITY_INFO, "Frame: Ch%d PWM=%d %s", channel_num, pwm_value, position_str);
+    }
 }
 
 // update_batt_compass - read battery and compass
