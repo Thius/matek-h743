@@ -270,6 +270,14 @@ for t in $CI_BUILD_TARGET; do
         continue
     fi
 
+    if [ "$t" == "MatekH743-bootloader" ]; then
+        echo "Building MatekH743 bootloader"
+        $waf configure --board MatekH743 --bootloader
+        $waf clean
+        $waf bootloader
+        continue
+    fi
+
     if [ "$t" == "stm32f7" ]; then
         echo "Building mRoX21-777/"
         $waf configure --Werror --board mRoX21-777
@@ -301,6 +309,12 @@ for t in $CI_BUILD_TARGET; do
         # test external flash build
         echo "Building SPRacingH7"
         $waf configure --Werror --board SPRacingH7
+        $waf clean
+        $waf copter
+
+        # test MatekH743 (WING board)
+        echo "Building MatekH743"
+        $waf configure --Werror --board MatekH743
         $waf clean
         $waf copter
         continue
