@@ -139,7 +139,6 @@ jobs:
         matrix:
           config: [
             MatekH743,
-            MatekH743-bootloader,
           ]
         toolchain: [
             chibios,

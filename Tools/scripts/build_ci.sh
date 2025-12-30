@@ -314,7 +314,7 @@ for t in $CI_BUILD_TARGET; do
 
         # test MatekH743 (WING board)
         echo "Building MatekH743"
-        $waf configure --Werror --board MatekH743
+        $waf configure --Werror --board MatekH743 --bootloader
         $waf clean
         $waf copter
         continue

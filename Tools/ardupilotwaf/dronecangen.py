@@ -24,7 +24,8 @@ class dronecangen(Task.Task):
 
         cmd = ['{}'.format(python),
                '{}/dronecan_dsdlc.py'.format(dsdlc),
-               '-O{}'.format(out)] + [x.abspath() for x in self.inputs]
+               '-O{}'.format(out),
+               '-j', '1'] + [x.abspath() for x in self.inputs]
         ret = self.exec_command(cmd)
         if ret != 0:
             # ignore if there was a signal to the interpreter rather
