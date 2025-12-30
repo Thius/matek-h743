@@ -184,3 +184,13 @@ jobs:
           Tools/scripts/build_ci.sh
           ccache -s
           ccache -z
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: firmware-${{matrix.config}}-${{ matrix.toolchain }}-gcc${{matrix.gcc}}
+          path: |
+            build/${{matrix.config}}/bin/*.apj
+            build/${{matrix.config}}/bin/*.bin
+            build/${{matrix.config}}/bin/*.elf
+          retention-days: 30
