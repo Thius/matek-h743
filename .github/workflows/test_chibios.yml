@@ -136,10 +136,11 @@ jobs:
     container: ardupilot/ardupilot-dev-${{ matrix.toolchain }}:v0.1.3
     strategy:
       fail-fast: false  # don't cancel if a job from the matrix fails
-        matrix:
-          config: [
-            MatekH743,
-          ]
+      matrix:
+        config: [
+          MatekH743,
+          MatekH743-bootloader,
+        ]
         toolchain: [
             chibios,
             #chibios-clang,
@@ -184,23 +185,13 @@ jobs:
           Tools/scripts/build_ci.sh
           ccache -s
           ccache -z
-      - name: Determine build directory
-        id: build_dir
-        run: |
-          CONFIG="${{matrix.config}}"
-          if [[ "${CONFIG}" == *"-bootloader" ]]; then
-            BOARD_NAME="${CONFIG%-bootloader}"
-          else
-            BOARD_NAME="${CONFIG}"
-          fi
-          echo "board_name=${BOARD_NAME}" >> $GITHUB_OUTPUT
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: firmware-${{matrix.config}}-${{ matrix.toolchain }}-gcc${{matrix.gcc}}
           path: |
-            build/${{steps.build_dir.outputs.board_name}}/bin/*.apj
-            build/${{steps.build_dir.outputs.board_name}}/bin/*.bin
-            build/${{steps.build_dir.outputs.board_name}}/bin/*.elf
+            build/${{matrix.config}}/bin/*.apj
+            build/${{matrix.config}}/bin/*.bin
+            build/${{matrix.config}}/bin/*.elf
           retention-days: 30
