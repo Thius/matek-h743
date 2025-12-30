@@ -185,13 +185,64 @@ jobs:
           Tools/scripts/build_ci.sh
           ccache -s
           ccache -z
+      - name: Determine board name for artifacts
+        id: board_name
+        run: |
+          CONFIG="${{matrix.config}}"
+          if [[ "${CONFIG}" == *"-bootloader" ]]; then
+            BOARD_NAME="${CONFIG%-bootloader}"
+          else
+            BOARD_NAME="${CONFIG}"
+          fi
+          echo "board_name=${BOARD_NAME}" >> $GITHUB_OUTPUT
+      - name: Generate ELF and HEX files
+        run: |
+          BOARD_NAME="${{steps.board_name.outputs.board_name}}"
+          BUILD_DIR="build/${BOARD_NAME}"
+          BIN_DIR="${BUILD_DIR}/bin"
+          
+          if [[ "${{matrix.config}}" == *"-bootloader" ]]; then
+            # Bootloader: ELF is in bootloader/AP_Bootloader, copy to bin/
+            if [ -f "${BUILD_DIR}/bootloader/AP_Bootloader" ]; then
+              cp "${BUILD_DIR}/bootloader/AP_Bootloader" "${BIN_DIR}/AP_Bootloader.elf"
+              echo "Copied bootloader ELF"
+            fi
+            # Generate HEX from BIN
+            for bin_file in ${BIN_DIR}/*.bin; do
+              if [ -f "$bin_file" ]; then
+                hex_file="${bin_file%.bin}.hex"
+                python3 Tools/scripts/bin2hex.py --offset 0x08000000 "$bin_file" "$hex_file"
+                echo "Generated HEX: $hex_file"
+              fi
+            done
+          else
+            # Regular firmware: find ELF files and copy to bin/, generate HEX
+            find "${BUILD_DIR}" -name "*.elf" -type f | while read elf_file; do
+              elf_name=$(basename "$elf_file")
+              cp "$elf_file" "${BIN_DIR}/${elf_name}"
+              echo "Copied ELF: ${elf_name}"
+              # Generate HEX from ELF
+              hex_file="${BIN_DIR}/${elf_name%.elf}.hex"
+              arm-none-eabi-objcopy -O ihex "$elf_file" "$hex_file"
+              echo "Generated HEX: $hex_file"
+            done
+            # Also generate HEX from BIN files (backup method)
+            for bin_file in ${BIN_DIR}/*.bin; do
+              if [ -f "$bin_file" ] && [ ! -f "${bin_file%.bin}.hex" ]; then
+                hex_file="${bin_file%.bin}.hex"
+                python3 Tools/scripts/bin2hex.py --offset 0x08000000 "$bin_file" "$hex_file"
+                echo "Generated HEX from BIN: $hex_file"
+              fi
+            done
+          fi
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: firmware-${{matrix.config}}-${{ matrix.toolchain }}-gcc${{matrix.gcc}}
           path: |
-            build/${{matrix.config}}/bin/*.apj
-            build/${{matrix.config}}/bin/*.bin
-            build/${{matrix.config}}/bin/*.elf
+            build/${{steps.board_name.outputs.board_name}}/bin/*.apj
+            build/${{steps.board_name.outputs.board_name}}/bin/*.bin
+            build/${{steps.board_name.outputs.board_name}}/bin/*.elf
+            build/${{steps.board_name.outputs.board_name}}/bin/*.hex
           retention-days: 30
