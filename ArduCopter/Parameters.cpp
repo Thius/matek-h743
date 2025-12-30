@@ -410,18 +410,18 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(rc_speed, "RC_SPEED",              RC_FAST_SPEED),
 
-    // @Param: THIUS_FLIGHT_FRAME_ENABLED
-    // @DisplayName: This Flight Frame Enabled
-    // @Description: Enable this flight frame
+    // @Param: AUTO_FRAME_EN
+    // @DisplayName: Auto Flight Frame Enabled
+    // @Description: Enable auto flight frame
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
-    GSCALAR(thius_flight_frame_enabled, "THIUS_FLIGHT_FRAME_ENABLED", 0),
+    GSCALAR(thius_flight_frame_enabled, "AUTO_FRAME_EN", 0),
 
-    // @Param: THIUS_FLIGHT_FRAME_CH
-    // @DisplayName: This Flight Frame Channel
-    // @Description: Channel for this flight frame
+    // @Param: AUTO_FRAME_CH
+    // @DisplayName: Auto Flight Frame Channel
+    // @Description: Channel for auto flight frame
     // @User: Advanced
-    GSCALAR(thius_flight_frame_ch, "THIUS_FLIGHT_FRAME_CH", 0),
+    GSCALAR(thius_flight_frame_ch, "AUTO_FRAME_CH", 0),
 
 #if MODE_ACRO_ENABLED || MODE_SPORT_ENABLED
     // @Param: ACRO_BAL_ROLL

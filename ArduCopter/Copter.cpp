@@ -587,32 +587,111 @@ void Copter::check_thius_flight_frame(void)
         return;
     }
 
-    // Determine position (3 positions with equal ranges: 1000-1333, 1334-1666, 1667-2000)
-    uint8_t position = 0;
-    const char* position_str = nullptr;
-
-    if (pwm_value >= 1000 && pwm_value <= 1333) {
-        position = 1;
-        position_str = "Position 1";
-    } else if (pwm_value >= 1334 && pwm_value <= 1666) {
-        position = 2;
-        position_str = "Position 2";
-    } else if (pwm_value >= 1667 && pwm_value <= 2000) {
-        position = 3;
-        position_str = "Position 3";
-    } else {
-        // Out of range
+    // Static variable to track last PWM value - don't execute if unchanged
+    static uint16_t last_pwm_value = 0;
+    
+    // Early return if PWM value hasn't changed
+    if (pwm_value == last_pwm_value) {
         return;
     }
 
-    // Static variable to track last position to avoid spamming GCS
+    // Determine position and frame type (3 positions: HEX X, QUAD X, OCT PLUS)
+    uint8_t position = 0;
+    const char* frame_name = nullptr;
+    AP_Motors::motor_frame_class frame_class;
+    AP_Motors::motor_frame_type frame_type;
+
+    if (pwm_value >= 1000 && pwm_value <= 1333) {
+        // Position 1: QUAD X
+        position = 1;
+        frame_name = "OCT PLUS";
+        frame_class = AP_Motors::MOTOR_FRAME_OCTA;
+        frame_type = AP_Motors::MOTOR_FRAME_TYPE_PLUS;
+
+
+    } else if (pwm_value >= 1334 && pwm_value <= 1666) {
+        // Position 2: OCT PLUS
+        position = 2;
+        frame_name = "HEX X";
+        frame_class = AP_Motors::MOTOR_FRAME_HEXA;
+        frame_type = AP_Motors::MOTOR_FRAME_TYPE_X;
+    } else if (pwm_value >= 1667 && pwm_value <= 2000) {
+        // Position 3: HEX X
+        position = 3;
+    
+        frame_name = "QUAD X";
+        frame_class = AP_Motors::MOTOR_FRAME_QUAD;
+        frame_type = AP_Motors::MOTOR_FRAME_TYPE_X;
+
+
+
+    } else {
+        // Out of range - update last_pwm_value but don't process
+        last_pwm_value = pwm_value;
+        return;
+    }
+
+    // Static variable to track last position to avoid spamming GCS and repeated parameter saves
     static uint8_t last_position = 0;
     
-    // Only send message if position changed
+    // Only update if position changed
     if (position != last_position) {
         last_position = position;
-        // Send message to GCS
-        gcs().send_text(MAV_SEVERITY_INFO, "Frame: Ch%d PWM=%d %s", channel_num, pwm_value, position_str);
+        last_pwm_value = pwm_value;
+        
+        // Set frame class and type parameters
+        g2.frame_class.set_and_save((int8_t)frame_class);
+        g.frame_type.set_and_save((int8_t)frame_type);
+        
+        // Set servo outputs based on frame type (S3-S10, which are channels 2-9)
+        // Servo channels are 0-indexed: S3=ch2, S4=ch3, S5=ch4, S6=ch5, S7=ch6, S8=ch7, S9=ch8, S10=ch9
+        SRV_Channel *ch;
+        if (frame_class == AP_Motors::MOTOR_FRAME_OCTA) {
+            // OCT PLUS: s3-motor6, s4-motor2, s5-motor4, s6-motor8, s7-motor3, s8-motor1, s9-motor5, s10-motor7
+            if ((ch = SRV_Channels::srv_channel(2)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor6);  // S3
+            if ((ch = SRV_Channels::srv_channel(3)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor2);  // S4
+            if ((ch = SRV_Channels::srv_channel(4)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor4);  // S5
+            if ((ch = SRV_Channels::srv_channel(5)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor8);  // S6
+            if ((ch = SRV_Channels::srv_channel(6)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor3);  // S7
+            if ((ch = SRV_Channels::srv_channel(7)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor1);  // S8
+            if ((ch = SRV_Channels::srv_channel(8)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor5);  // S9
+            if ((ch = SRV_Channels::srv_channel(9)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor7); // S10
+        } else if (frame_class == AP_Motors::MOTOR_FRAME_HEXA) {
+            // HEX X: s3-motor6, s4-disabled, s5-motor4, s6-disabled, s7-motor1, s8-motor5, s9-disabled, s10-motor3
+            if ((ch = SRV_Channels::srv_channel(2)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor6);  // S3
+            if ((ch = SRV_Channels::srv_channel(3)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);     // S4 disabled
+            if ((ch = SRV_Channels::srv_channel(4)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor4);  // S5
+            if ((ch = SRV_Channels::srv_channel(5)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor1);     // S6
+            if ((ch = SRV_Channels::srv_channel(6)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor5);  // S7
+            if ((ch = SRV_Channels::srv_channel(7)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);  // S8 disabled
+            if ((ch = SRV_Channels::srv_channel(8)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor3);     // S9 
+            if ((ch = SRV_Channels::srv_channel(9)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor2); // S10
+        } else if (frame_class == AP_Motors::MOTOR_FRAME_QUAD) {
+            // QUAD X: s3-motor2, s4-disabled, s5-motor4, s6-disabled, s7-motor1, s8-disabled, s9-motor3, s10-disabled
+            if ((ch = SRV_Channels::srv_channel(2)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor2);  // S3
+            if ((ch = SRV_Channels::srv_channel(3)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);     // S4 disabled
+            if ((ch = SRV_Channels::srv_channel(4)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor4);  // S5
+            if ((ch = SRV_Channels::srv_channel(5)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);     // S6 disabled
+            if ((ch = SRV_Channels::srv_channel(6)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor1);  // S7
+            if ((ch = SRV_Channels::srv_channel(7)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);     // S8 disabled
+            if ((ch = SRV_Channels::srv_channel(8)) != nullptr) ch->function_set_and_save(SRV_Channel::k_motor3);  // S9
+            if ((ch = SRV_Channels::srv_channel(9)) != nullptr) ch->function_set_and_save(SRV_Channel::k_none);     // S10 disabled
+        }
+        
+        // Update motors with new frame class and type
+        if (motors != nullptr) {
+            motors->set_frame_class_and_type(frame_class, frame_type);
+        }
+        
+        // Update servo function assignments
+        SRV_Channels::update_aux_servo_function();
+        
+        // Log what was set: send message to GCS with frame class and type values (split into 2 parts)
+        gcs().send_text(MAV_SEVERITY_INFO, "Frame: Ch%d PWM=%d %s", channel_num, pwm_value, frame_name);
+        gcs().send_text(MAV_SEVERITY_INFO, "Frame: FRAME_CLASS=%d FRAME_TYPE=%d", (int)frame_class, (int)frame_type);
+    } else {
+        // Position didn't change but PWM did (within same position range) - update tracking
+        last_pwm_value = pwm_value;
     }
 }
 
