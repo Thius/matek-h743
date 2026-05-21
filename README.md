@@ -8,3 +8,4 @@
 - Within the STM32 tool, Open the .elf file, and write to a board within DFU mode
 
 - If board is bricked, install Betaflight via Betaflight configurator, then Copter 
+ 
